@@ -311,9 +311,8 @@ var igv = (function (igv) {
             browser.$searchResults.hide();
 
             // window size panel
-            browser.windowSizePanel = new igv.WindowSizePanel($navigation);
+            // browser.windowSizePanel = new igv.WindowSizePanel($navigation);
 
-            // $navigation.append($zoomContainer[0]);
             $navigation.append(makeZoomWidget());
 
             // cursor tracking guide
