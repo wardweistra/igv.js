@@ -657,22 +657,6 @@ var igv = (function (igv) {
 
         function zoomInWithLocusIndex(browser, locusIndex) {
 
-<<<<<<< HEAD
-        // Have we reached the zoom-in threshold yet? If so, bail.
-        if (this.minimumBasesExtent() > basesExtent(this.trackViewportWidth(), this.referenceFrame.bpPerPixel / 2.0)) {
-            console.log('browser.zoomIn - dst extent ' + basesExtent(this.trackViewportWidth(), this.referenceFrame.bpPerPixel / 2.0) + ' bailing ...');
-            return;
-        } else {
-            console.log('browser.zoomIn - dst extent ' + basesExtent(this.trackViewportWidth(), this.referenceFrame.bpPerPixel / 2.0));
-        }
-
-        // window center (base-pair units)
-        centerBP = this.referenceFrame.start + this.referenceFrame.bpPerPixel * (this.trackViewportWidth() / 2);
-
-        // derive scaled (zoomed in) start location (base-pair units) by multiplying half-width by halve'd bases-per-pixel
-        // which results in base-pair units
-        this.referenceFrame.start = centerBP - (this.trackViewportWidth() / 2) * (this.referenceFrame.bpPerPixel / 2.0);
-=======
             var genomicState = browser.genomicStateList[ locusIndex ],
                 referenceFrame = genomicState.referenceFrame,
                 viewportWidth = genomicState.viewportContainerPercentage * browser.viewportContainerWidth(),
@@ -685,7 +669,6 @@ var igv = (function (igv) {
 
             // window center (base-pair units)
             centerBP = referenceFrame.start + referenceFrame.bpPerPixel * (viewportWidth/2);
->>>>>>> dat_feature
 
             // derive scaled (zoomed in) start location (base-pair units) by multiplying half-width by halve'd bases-per-pixel
             // which results in base-pair units
@@ -959,11 +942,7 @@ var igv = (function (igv) {
 
         if (igv.isLocusChrNameStartEnd(feature, this.genome, undefined)) {
 
-<<<<<<< HEAD
-            var success = gotoLocusFeature(feature, this.genome, this);
-=======
             var success =  igv.gotoLocusFeature(feature, this.genome, this);
->>>>>>> dat_feature
 
             if ((force || true === success) && callback) {
                 callback();
@@ -1002,12 +981,7 @@ var igv = (function (igv) {
                         //alert('No feature found with name "' + feature + '"');
                         igv.presentAlert('No feature found with name "' + feature + '"');
                     }
-<<<<<<< HEAD
-                    else {
-=======
                     else if (results.length == 1) {
->>>>>>> dat_feature
-
                         // Just take the first result for now
                         // TODO - merge results, or ask user to choose
 
@@ -1166,13 +1140,9 @@ var igv = (function (igv) {
                 }
             }
 
-<<<<<<< HEAD
-            obj = {start: start, end: end};
-            validateLocusExtent(igv.browser, chr, obj);
-=======
             obj = { start: start, end: end };
             igv.validateLocusExtent(chr, obj);
->>>>>>> dat_feature
+
             start = obj.start;
             end = obj.end;
 
@@ -1186,47 +1156,6 @@ var igv = (function (igv) {
         browser.goto(chrName, start, end);
         fireOnsearch.call(igv.browser, locusFeature, type);
 
-<<<<<<< HEAD
-        function validateLocusExtent(browser, chromosome, extent) {
-
-            var ss = extent.start,
-                ee = extent.end,
-                locusExtent = ee - ss;
-
-            if (undefined === ee) {
-
-                ss -= igv.browser.minimumBasesExtent() / 2;
-                ee = ss + igv.browser.minimumBasesExtent();
-
-                if (ee > chromosome.bpLength) {
-                    ee = chromosome.bpLength;
-                    ss = ee - igv.browser.minimumBasesExtent();
-                } else if (ss < 0) {
-                    ss = 0;
-                    ee = igv.browser.minimumBasesExtent();
-                }
-
-            } else if (ee - ss < igv.browser.minimumBasesExtent()) {
-
-                center = (ee + ss) / 2;
-                if (center - igv.browser.minimumBasesExtent() / 2 < 0) {
-                    ss = 0;
-                    ee = ss + igv.browser.minimumBasesExtent();
-                } else if (center + igv.browser.minimumBasesExtent() / 2 > chromosome.bpLength) {
-                    ee = chromosome.bpLength;
-                    ss = ee - igv.browser.minimumBasesExtent();
-                } else {
-                    ss = center - igv.browser.minimumBasesExtent() / 2;
-                    ee = ss + igv.browser.minimumBasesExtent();
-                }
-            }
-
-            extent.start = Math.ceil(ss);
-            extent.end = Math.floor(ee);
-        }
-
-=======
->>>>>>> dat_feature
         return true;
     };
 

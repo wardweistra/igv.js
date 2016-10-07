@@ -597,7 +597,7 @@ div.ui-dialog fieldset {
     width: 34px;
     height: 16px;
 
-    background: url(img/igv_logo_letters_paths.svg);
+    background: url(img/igv-logo.svg);
     background-size: 34px 16px;
     background-repeat:no-repeat;
     background-position: 0 0;
@@ -781,21 +781,12 @@ div.ui-dialog fieldset {
     border-radius: 10px;
 }
 
-<<<<<<< HEAD
 .igv-nav-bar-toggle-button-on {
     color: #737373;
     border-color: #737373;
     background-color: #f3f3f3;
     border-width: thin;
 }
-=======
-.igv-nav-bar-toggle-button-off {
-    color: white;
-    border-color: #7f7f7f;
-    background-color: #7f7f7f;
-
-    border-radius: 12px;
->>>>>>> dat_feature
 
 .igv-nav-bar-toggle-button-on:hover,
 .igv-nav-bar-toggle-button-on:focus,
