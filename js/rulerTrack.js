@@ -29,6 +29,7 @@ var igv = (function (igv) {
     igv.RulerTrack = function () {
 
         this.height = 50;
+        // this.height = 24;
         this.name = "";
         this.id = "ruler";
         this.disableButtons = true;
@@ -37,22 +38,61 @@ var igv = (function (igv) {
 
     };
 
+    igv.RulerTrack.prototype.lengthWidgetWithGenomeState = function (genomeState) {
+
+        var $lengthWidgetContainer = $('<div class = "igv-viewport-content-ruler-div">'),
+            $lengthWidget = $('<div class = "igv-ruler-length-widget">'),
+            $arrowLeft = $('<div class = "igv-ruler-length-widget-arrow-left">'),
+            $arrowRight = $('<div class = "igv-ruler-length-widget-arrow-right">'),
+            $lengthWidgetLabel = $('<span>'),
+            bp;
+
+        // $lengthWidgetContainer.css("background-color", igv.randomRGBConstantAlpha(200, 255, 0.75));
+
+        $lengthWidgetContainer.append($lengthWidget);
+        $lengthWidget.append($arrowLeft);
+        $lengthWidget.append($arrowRight);
+        $lengthWidget.append($lengthWidgetLabel);
+
+        bp = genomeState.viewportWidth * genomeState.referenceFrame.bpPerPixel;
+        $lengthWidgetLabel.text(igv.prettyBasePairNumber(Math.round(bp)));
+
+        return $lengthWidgetContainer;
+
+    };
+
     igv.RulerTrack.prototype.getFeatures = function (chr, bpStart, bpEnd) {
 
         return new Promise(function (fulfill, reject) {
             fulfill([]);
         });
-    }
+    };
 
     igv.RulerTrack.prototype.draw = function (options) {
 
         var fontStyle,
-            ctx = options.context,
             range,
             ts,
             spacing,
             nTick,
-            x;
+            x,
+            l,
+            yShim,
+            tickHeight,
+            viewports,
+            $e;
+
+        if (igv.browser.rulerTrack) {
+            viewports = _.filter(igv.Viewport.viewportsWithLocusIndex(options.genomeState.locusIndex), function(viewport){
+                return viewport.trackView.track instanceof igv.RulerTrack;
+            });
+
+            if (1 === _.size(viewports)) {
+                $e = _.first(viewports).$viewport.find('.igv-ruler-length-widget').find('span');
+                $e.text(igv.prettyBasePairNumber(Math.round( options.bpPerPixel * options.viewportWidth )));
+            }
+
+        }
 
         fontStyle = { textAlign: 'center', font: '10px PT Sans', fillStyle: "rgba(64, 64, 64, 1)", strokeStyle: "rgba(64, 64, 64, 1)" };
 
@@ -65,24 +105,25 @@ var igv = (function (igv) {
         x = 0;
 
         //canvas.setProperties({textAlign: 'center'});
-        igv.graphics.setProperties(ctx, fontStyle );
+        igv.graphics.setProperties(options.context, fontStyle );
         while (x < options.pixelWidth) {
 
-            var l = Math.floor(nTick * spacing),
-                shim = 2;
+            l = Math.floor(nTick * spacing);
+            yShim = 2;
+            tickHeight = 6;
 
             x = Math.round(((l - 1) - options.bpStart + 0.5) / options.bpPerPixel);
             var chrPosition = formatNumber(l / ts.unitMultiplier, 0) + " " + ts.majorUnit;
 
             if (nTick % 1 == 0) {
-                igv.graphics.fillText(ctx, chrPosition, x, this.height - 15);
+                igv.graphics.fillText(options.context, chrPosition, x, this.height - (tickHeight/0.75));
             }
 
-            igv.graphics.strokeLine(ctx, x, this.height - 10, x, this.height - shim);
+            igv.graphics.strokeLine(options.context, x, this.height - tickHeight, x, this.height - yShim);
 
             nTick++;
         }
-        igv.graphics.strokeLine(ctx, 0, this.height - shim, options.pixelWidth, this.height - shim);
+        igv.graphics.strokeLine(options.context, 0, this.height - yShim, options.pixelWidth, this.height - yShim);
 
 
         function formatNumber(anynum, decimal) {

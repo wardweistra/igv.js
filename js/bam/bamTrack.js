@@ -101,8 +101,10 @@ var igv = (function (igv) {
 
         this.alignmentTrack.sortAlignmentRows(genomicLocation, this.sortOption);
 
-        this.trackView.redrawTile(this.featureSource.alignmentContainer);
-        $(this.trackView.viewportDiv).scrollTop(0);
+        // TODO - dat. Temporary hack to stand up mult-locus implementation.
+        // TODO - dat. MUST identify viewport that was clicked in.
+        this.trackView.viewports[ 0 ].redrawTile(this.featureSource.alignmentContainer);
+        this.trackView.viewports[ 0 ].$viewport.scrollTop(0);
 
         this.sortDirection = !this.sortDirection;
     };
@@ -136,13 +138,13 @@ var igv = (function (igv) {
 
     };
 
-    igv.BAMTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset) {
+    igv.BAMTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset, referenceFrame) {
 
         if (yOffset >= this.coverageTrack.top && yOffset < this.coverageTrack.height) {
-            return this.coverageTrack.popupData(genomicLocation, xOffset, this.coverageTrack.top);
+            return this.coverageTrack.popupData(genomicLocation, xOffset, this.coverageTrack.top, referenceFrame);
         }
         else {
-            return this.alignmentTrack.popupData(genomicLocation, xOffset, yOffset - this.alignmentTrack.top);
+            return this.alignmentTrack.popupData(genomicLocation, xOffset, yOffset - this.alignmentTrack.top, referenceFrame);
         }
 
     };
@@ -276,14 +278,14 @@ var igv = (function (igv) {
                 object: $('<div class="igv-track-menu-item">' + "Sort by base" + '</div>'),
                 click: function () {
                     var genomicLocationViaTrackViewportHalfWidth,
-                        trackViewportHalfWidth;
+                        viewportHalfWidth;
 
                     popover.hide();
 
-                    trackViewportHalfWidth = Math.floor(igv.browser.trackViewportWidth()/2);
-                    genomicLocationViaTrackViewportHalfWidth = Math.floor((igv.browser.referenceFrame.start) + igv.browser.referenceFrame.toBP(trackViewportHalfWidth));
+                    viewportHalfWidth = Math.floor(0.5 * igv.browser.genomicStateList[ 0 ].viewportWidth);
+                    genomicLocationViaTrackViewportHalfWidth = Math.floor((igv.browser.genomicStateList[ 0 ].referenceFrame.start) + igv.browser.genomicStateList[ 0 ].referenceFrame.toBP(viewportHalfWidth));
 
-                    // console.log('bamTrack - sort - trackViewportHalfWidth ' + igv.numberFormatter(genomicLocationViaTrackViewportHalfWidth));
+                    // console.log('bamTrack - sort - viewportHalfWidth ' + igv.numberFormatter(genomicLocationViaTrackViewportHalfWidth));
 
                     self.altClick(genomicLocationViaTrackViewportHalfWidth, undefined);
 
@@ -441,7 +443,7 @@ var igv = (function (igv) {
 
     };
 
-    CoverageTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset) {
+    CoverageTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset, referenceFrame) {
 
         var coverageMap = this.featureSource.alignmentContainer.coverageMap,
             coverageMapIndex,
@@ -455,7 +457,7 @@ var igv = (function (igv) {
         if (coverage) {
 
 
-            nameValues.push(igv.browser.referenceFrame.chr + ":" + igv.numberFormatter(1 + genomicLocation));
+            nameValues.push(referenceFrame.chrName + ":" + igv.numberFormatter(1 + genomicLocation));
 
             nameValues.push({name: 'Total Count', value: coverage.total});
 
@@ -807,7 +809,7 @@ var igv = (function (igv) {
 
     };
 
-    AlignmentTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset) {
+    AlignmentTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset, referenceFrame) {
 
         var packedAlignmentRows = this.featureSource.alignmentContainer.packedAlignmentRows,
             downsampledIntervals = this.featureSource.alignmentContainer.downsampledIntervals,

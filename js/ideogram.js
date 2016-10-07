@@ -4,13 +4,13 @@
  * Copyright (c) 2014 Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
+ * of panel software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in
+ * The above copyright notice and panel permission notice shall be included in
  * all copies or substantial portions of the Software.
  *
  *
@@ -29,73 +29,85 @@
 
 var igv = (function (igv) {
 
-    igv.IdeoPanel = function (parentElement) {
+    igv.IdeoPanel = function ($content_header) {
 
-        this.ideograms = {};
+        $content_header.append($('<div class="igv-ideogram-left-shim"></div>'));
+        this.buildPanels($content_header);
+    };
 
-        // ideogram content
-        this.contentDiv = $('<div class="igv-ideogram-content-div"></div>');
-        $(parentElement).append(this.contentDiv[0]);
+    igv.IdeoPanel.prototype.buildPanels = function ($content_header) {
 
-        var myself = this;
-        this.contentDiv.click(function (e) {
+        this.panels = _.map(igv.browser.genomicStateList, function(genomicState) {
 
-            var xy,
-                xPercentage,
-                chr,
-                chrLength,
-                locusLength,
-                chrCoveragePercentage,
-                locus;
+            var panel = {};
 
-            xy = igv.translateMouseCoordinates(e, myself.contentDiv);
-            xPercentage = xy.x / myself.contentDiv.width();
+            panel.locusIndex = genomicState.locusIndex;
+            panel.viewportContainerPercentage = genomicState.viewportContainerPercentage;
 
-            locusLength = igv.browser.trackViewportWidthBP();
-            chr = igv.browser.genome.getChromosome(igv.browser.referenceFrame.chr);
-            chrLength = chr.bpLength;
-            chrCoveragePercentage = locusLength / chrLength;
+            panel.$ideogram = $('<div class="igv-ideogram-content-div"></div>');
+            $content_header.append(panel.$ideogram);
 
-            if (xPercentage - (chrCoveragePercentage/2.0) < 0) {
-                xPercentage = chrCoveragePercentage/2.0;
-                //return;
-            }
+            panel.$ideogram.width(genomicState.viewportWidth);
 
-            if (xPercentage + (chrCoveragePercentage/2.0) > 1.0) {
-                xPercentage = 1.0 - chrCoveragePercentage/2.0;
-                //return;
-            }
+            panel.$canvas = $('<canvas class="igv-ideogram-canvas"></canvas>');
+            panel.$ideogram.append(panel.$canvas);
 
-            locus = igv.browser.referenceFrame.chr + ":" + igv.numberFormatter(1 + Math.floor((xPercentage - (chrCoveragePercentage/2.0)) * chrLength)) + "-" + igv.numberFormatter(Math.floor((xPercentage + (chrCoveragePercentage/2.0)) * chrLength));
-            //console.log("chr length " + igv.numberFormatter(chrLength) + " locus " + locus);
+            panel.$canvas.attr('width', panel.$ideogram.width());
+            panel.$canvas.attr('height', panel.$ideogram.height());
 
-            igv.browser.search(locus, undefined);
+            panel.ctx = panel.$canvas.get(0).getContext("2d");
 
+            panel.ideograms = {};
+
+            panel.$ideogram.on('click', function (e) {
+                igv.IdeoPanel.clickHandler(panel, e);
+            });
+
+            return panel;
         });
 
-        this.canvas = $('<canvas class="igv-ideogram-canvas"></canvas>')[0];
-        $(this.contentDiv).append(this.canvas);
-        this.canvas.setAttribute('width', this.contentDiv.width());
-        this.canvas.setAttribute('height', this.contentDiv.height());
-        this.ctx = this.canvas.getContext("2d");
+    };
 
+    igv.IdeoPanel.$empty = function ($content_header) {
+        var $a = $content_header.find('.igv-ideogram-content-div');
+        $a.remove();
+    };
+
+    igv.IdeoPanel.prototype.panelWithLocusIndex = function (locusIndex) {
+
+        var panels = _.filter(this.panels, function(panel){
+            return locusIndex === panel.locusIndex;
+        });
+
+        return _.first(panels);
     };
 
     igv.IdeoPanel.prototype.resize = function () {
 
-        this.canvas.setAttribute('width', this.contentDiv.width());
-        this.canvas.setAttribute('height', this.contentDiv.height());
+        var viewportContainerWidth = igv.browser.syntheticViewportContainerWidth();
 
-        this.ideograms = {};
+        _.each(this.panels, function(panel) {
+            panel.$ideogram.width(panel.viewportContainerPercentage * viewportContainerWidth);
+            panel.$canvas.attr('width', panel.$ideogram.width());
+            panel.ideograms = {};
+        });
+        
         this.repaint();
     };
 
     igv.IdeoPanel.prototype.repaint = function () {
 
+        _.each(this.panels, function(panel) {
+            igv.IdeoPanel.repaintPanel(panel);
+        })
+        
+    };
+
+    igv.IdeoPanel.repaintPanel = function (panel) {
+
         try {
             var y,
                 image,
-                bufferCtx,
                 chromosome,
                 widthPercentage,
                 xPercentage,
@@ -103,62 +115,55 @@ var igv = (function (igv) {
                 widthBP,
                 x,
                 xBP,
-                genome = igv.browser.genome,
-                referenceFrame = igv.browser.referenceFrame,
+                referenceFrame = igv.browser.genomicStateList[ panel.locusIndex ].referenceFrame,
                 stainColors = [];
 
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+            panel.ctx.clearRect(0, 0, panel.$canvas.width(), panel.$canvas.height());
 
-            if (!(genome && referenceFrame && genome.getChromosome(referenceFrame.chr))) {
+            if (!(igv.browser.genome && referenceFrame && igv.browser.genome.getChromosome(referenceFrame.chrName))) {
                 return;
             }
 
-            image = this.ideograms[igv.browser.referenceFrame.chr];
+            image = panel.ideograms[ referenceFrame.chrName ];
 
             if (!image) {
 
                 image = document.createElement('canvas');
-                image.width = this.canvas.width;
+                image.width = panel.$canvas.width();
                 image.height = 13;
 
-                bufferCtx = image.getContext('2d');
+                drawIdeogram(image.getContext('2d'), panel.$canvas.width(), image.height);
 
-                drawIdeogram(bufferCtx, this.canvas.width, image.height);
-
-                this.ideograms[igv.browser.referenceFrame.chr] = image;
+                panel.ideograms[ referenceFrame.chrName ] = image;
             }
 
-            y = (this.canvas.height - image.height) / 2.0;
-            this.ctx.drawImage(image, 0, y);
+            y = (panel.$canvas.height() - image.height) / 2.0;
+            panel.ctx.drawImage(image, 0, y);
 
             // Draw red box
-            this.ctx.save();
+            panel.ctx.save();
 
-            chromosome = igv.browser.genome.getChromosome(igv.browser.referenceFrame.chr);
+            chromosome = igv.browser.genome.getChromosome(referenceFrame.chrName);
 
-            widthBP = Math.floor(igv.browser.trackViewportWidthBP());
-                xBP = igv.browser.referenceFrame.start;
+            widthBP = Math.round(referenceFrame.bpPerPixel * panel.$ideogram.width());
+            xBP = referenceFrame.start;
 
             if (widthBP < chromosome.bpLength) {
 
                 widthPercentage = widthBP/chromosome.bpLength;
-                    xPercentage =     xBP/chromosome.bpLength;
+                xPercentage =     xBP/chromosome.bpLength;
 
-                x =     Math.floor(    xPercentage * this.canvas.width);
-                width = Math.floor(widthPercentage * this.canvas.width);
-
-                //console.log("canvas end " + this.canvas.width + " xEnd " + (x + width));
+                x =     Math.floor(    xPercentage * panel.$canvas.width());
+                width = Math.floor(widthPercentage * panel.$canvas.width());
 
                 x = Math.max(0, x);
-                x = Math.min(this.canvas.width - width, x);
+                x = Math.min(panel.$canvas.width() - width, x);
 
-                this.ctx.strokeStyle = "red";
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(x, y, width, image.height + this.ctx.lineWidth - 1);
-                this.ctx.restore();
+                panel.ctx.strokeStyle = "red";
+                panel.ctx.lineWidth = 2;
+                panel.ctx.strokeRect(x, y, width, image.height + panel.ctx.lineWidth - 1);
+                panel.ctx.restore();
             }
-
-            //this.chromosomeNameLabel.innerHTML = referenceFrame.chr;
 
         } catch (e) {
             console.log("Error painting ideogram: " + e.message);
@@ -168,9 +173,11 @@ var igv = (function (igv) {
 
             var ideogramTop = 0;
 
-            if (!genome) return;
+            if (!igv.browser.genome) {
+                return;
+            }
 
-            var cytobands = genome.getCytobands(referenceFrame.chr);
+            var cytobands = igv.browser.genome.getCytobands(referenceFrame.chrName);
 
             if (cytobands) {
 
@@ -257,6 +264,48 @@ var igv = (function (igv) {
 
     };
 
+    igv.IdeoPanel.clickHandler  = function  (panel, e) {
+
+        var xy,
+            xPercentage,
+            genomicState = igv.browser.genomicStateList[ panel.locusIndex ],
+            referenceFrame = genomicState.referenceFrame,
+            chr,
+            locusLength,
+            chrCoveragePercentage,
+            locus,
+            ss,
+            ee;
+
+        xy = igv.translateMouseCoordinates(e, panel.$ideogram.get(0));
+        xPercentage = xy.x / panel.$ideogram.width();
+
+        locusLength = referenceFrame.bpPerPixel * panel.$ideogram.width();
+
+        chr = igv.browser.genome.getChromosome(referenceFrame.chrName);
+        chrCoveragePercentage = locusLength / chr.bpLength;
+
+        if (xPercentage - (chrCoveragePercentage/2.0) < 0) {
+            xPercentage = chrCoveragePercentage/2.0;
+        }
+
+        if (xPercentage + (chrCoveragePercentage/2.0) > 1.0) {
+            xPercentage = 1.0 - chrCoveragePercentage/2.0;
+        }
+
+        ss = Math.round((xPercentage - (chrCoveragePercentage/2.0)) * chr.bpLength);
+        ee = Math.round((xPercentage + (chrCoveragePercentage/2.0)) * chr.bpLength);
+
+        referenceFrame.start = Math.round((xPercentage - (chrCoveragePercentage/2.0)) * chr.bpLength);
+        referenceFrame.bpPerPixel = (ee - ss)/ panel.$ideogram.width();
+
+        // locus = referenceFrame.chrName + ":" + igv.numberFormatter(1 + Math.floor((xPercentage - (chrCoveragePercentage/2.0)) * chr.bpLength)) + "-" + igv.numberFormatter(Math.floor((xPercentage + (chrCoveragePercentage/2.0)) * chr.bpLength));
+        // igv.browser.search(locus, undefined);
+
+        igv.browser.updateLocusSearchWithGenomicState(genomicState);
+        igv.browser.repaintWithLocusIndex( panel.locusIndex )
+
+    };
     return igv;
 })
 (igv || {});

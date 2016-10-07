@@ -43,37 +43,40 @@ var igv = (function (igv) {
 
         this.$centerGuideToggle = igv.makeToggleButton('center line', 'center line', 'showCenterGuide', function () {
             return self.$container;
+        }, function () {
+            self.repaint();
         });
 
     };
 
+
     igv.CenterGuide.prototype.repaint = function () {
 
         var ppb,
-            bbox,
-            trackViewXY,
-            trackViewHalfWidth,
+            trackXY,
+            trackHalfWidth,
             width,
             left,
             ls,
             ws,
             center,
-            xBP;
+            rect,
+            referenceFrame;
 
-        if (undefined === igv.browser.referenceFrame) {
+        if (undefined === igv.browser.genomicStateList) {
             return;
         }
 
-        ppb = 1.0/igv.browser.referenceFrame.bpPerPixel;
+        referenceFrame = igv.browser.genomicStateList[ 0 ].referenceFrame;
+        ppb = 1.0/referenceFrame.bpPerPixel;
         if (ppb > 1) {
 
-            bbox = igv.browser.syntheticTrackViewportContainerBBox();
-            trackViewXY = bbox.position;
-            trackViewHalfWidth = 0.5 * bbox.width;
-            xBP = igv.browser.referenceFrame.toBP(trackViewHalfWidth) + igv.browser.referenceFrame.start;
+            rect = igv.browser.syntheticViewportContainerBBox();
+            trackXY = rect.position;
+            trackHalfWidth = 0.5 * rect.width;
 
-            center = trackViewXY.left + trackViewHalfWidth;
-            width = igv.browser.referenceFrame.toPixels(1);
+            center = trackXY.left + trackHalfWidth;
+            width = referenceFrame.toPixels(1);
             left = center - 0.5 * width;
 
             ls = Math.round(left).toString() + 'px';
@@ -90,6 +93,10 @@ var igv = (function (igv) {
             this.$container.addClass('igv-center-guide-thin');
         }
 
+    };
+
+    igv.CenterGuide.prototype.resize = function () {
+        this.repaint();
     };
 
     return igv;
