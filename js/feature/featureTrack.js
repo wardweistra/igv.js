@@ -405,7 +405,7 @@ var igv = (function (igv) {
         windowX = Math.round(genomicState.referenceFrame.toPixels(genomicState.referenceFrame.start - bpStart));
         windowX1 = windowX + genomicState.viewportWidth;
 
-        renderFeatureLabels.call(this, ctx, feature, coord.px, coord.px1, py, windowX, windowX1);
+        renderFeatureLabels.call(this, ctx, feature, coord.px, coord.px1, py, windowX, windowX1, genomicState);
     }
 
     /**
@@ -416,8 +416,9 @@ var igv = (function (igv) {
      * @param featureY  feature y-coordinate
      * @param windowX   visible window start x-coordinate
      * @param windowX1  visible window end x-coordinate
+     * @param genomicState  genomic state
      */
-    function renderFeatureLabels(ctx, feature, featureX, featureX1, featureY, windowX, windowX1) {
+    function renderFeatureLabels(ctx, feature, featureX, featureX1, featureY, windowX, windowX1, genomicState) {
         var geneColor, geneFontStyle, transform,
             boxX, boxX1,    // label should be centered between these two x-coordinates
             labelX, labelY,
@@ -433,9 +434,9 @@ var igv = (function (igv) {
             boxX1 = Math.min(featureX1, windowX1);
         }
 
-        if (igv.browser.selection && "genes" === this.config.type && feature.name !== undefined) {
+        if (genomicState.selection && "genes" === this.config.type && feature.name !== undefined) {
             // TODO -- for gtex, figure out a better way to do this
-            geneColor = igv.browser.selection.colorForGene(feature.name);
+            geneColor = genomicState.selection.colorForGene(feature.name);
         }
 
         textFitsInBox = (boxX1 - boxX) > ctx.measureText(feature.name).width;
