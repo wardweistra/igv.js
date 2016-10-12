@@ -134,7 +134,7 @@ var igv = (function (igv) {
      * @param bpEnd
      */
 
-    igv.FeatureSource.prototype.getFeatures = function (chr, bpStart, bpEnd) {
+    igv.FeatureSource.prototype.getFeatures = function (chr, bpStart, bpEnd, bpPerPixel) {
 
         var self = this;
         return new Promise(function (fulfill, reject) {
