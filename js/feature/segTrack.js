@@ -306,7 +306,7 @@ var igv = (function (igv) {
             self.sampleNames = sampleNames;
 
             self.trackView.update();
-            $(self.trackView.viewportDiv).scrollTop(0);
+            self.trackView.$viewport.scrollTop(0);
 
 
         }).catch(function(error) {
@@ -318,24 +318,20 @@ var igv = (function (igv) {
      * Handle an alt-click.   TODO perhaps generalize this for all tracks (optional).
      *
      * @param genomicLocation
+     * @param referenceFrame
      * @param event
      */
-    igv.SegTrack.prototype.altClick = function (genomicLocation, event) {
+    igv.SegTrack.prototype.altClick = function (genomicLocation, referenceFrame, event) {
 
         // Define a region 5 "pixels" wide in genomic coordinates
-        var refFrame = igv.browser.referenceFrame,
-            bpWidth = refFrame.toBP(2.5),
-            bpStart = genomicLocation - bpWidth,
-            bpEnd = genomicLocation + bpWidth,
-            chr = refFrame.chr,
-            myself = this;
+        var bpWidth = referenceFrame.toBP(2.5);
 
-        this.sortSamples(chr, bpStart, bpEnd, sortDirection);
+        this.sortSamples(referenceFrame.chr, genomicLocation - bpWidth, genomicLocation + bpWidth, sortDirection);
 
         sortDirection = (sortDirection === "ASC" ? "DESC" : "ASC");
     };
 
-    igv.SegTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset) {
+    igv.SegTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset, referenceFrame) {
 
         var sampleHeight = ("SQUISHED" === this.displayMode) ? this.sampleSquishHeight : this.sampleExpandHeight,
             sampleName,
@@ -355,7 +351,7 @@ var igv = (function (igv) {
             // We use the featureCache property rather than method to avoid async load.  If the
             // feature is not already loaded this won't work,  but the user wouldn't be mousing over it either.
             if (this.featureSource.featureCache) {
-                var chr = igv.browser.referenceFrame.chr;  // TODO -- this should be passed in
+                var chr = referenceFrame.chrName;  // TODO -- this should be passed in
                 var featureList = this.featureSource.featureCache.queryFeatures(chr, genomicLocation, genomicLocation);
                 featureList.forEach(function (f) {
                     if (f.sample === sampleName) {
