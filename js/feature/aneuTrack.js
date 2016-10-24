@@ -532,20 +532,19 @@ var igv = (function (igv) {
      * (optional).
      *
      * @param genomicLocation
+     * @param referenceFrame
      * @param event
      */
-    igv.AneuTrack.prototype.altClick = function (genomicLocation, event) {
+    igv.AneuTrack.prototype.altClick = function (genomicLocation, referenceFrame, event) {
 
         // Define a region 5 "pixels" wide in genomic coordinates
-        var refFrame = igv.browser.referenceFrame, bpWidth = refFrame.toBP(2.5), bpStart = genomicLocation - bpWidth, bpEnd = genomicLocation
-            + bpWidth, chr = refFrame.chr, track = this;
+        var bpWidth = referenceFrame.toBP(2.5);
 
-        this.sortSamples(chr, bpStart, bpEnd, sortDirection);
-
+        this.sortSamples(referenceFrame.chr, genomicLocation - bpWidth, genomicLocation + bpWidth, sortDirection);
         sortDirection = (sortDirection === "ASC" ? "DESC" : "ASC");
     };
 
-    igv.AneuTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset) {
+    igv.AneuTrack.prototype.popupData = function (genomicLocation, xOffset, yOffset, referenceFrame) {
 
         var sampleName, row = Math.floor(yOffset / this.sampleHeight), items;
 
@@ -568,10 +567,8 @@ var igv = (function (igv) {
             // feature is not already loaded this won't work, but the user
             // wouldn't be mousing over it either.
             if (this.featureSource.featureCache) {
-                var chr = igv.browser.referenceFrame.chr; // TODO -- this
-                // should be passed
-                // in
-                var featureList = this.featureSource.featureCache.queryFeatures(chr, genomicLocation, genomicLocation);
+                var chr = referenceFrame.chrName,
+                    featureList = this.featureSource.featureCache.queryFeatures(chr, genomicLocation, genomicLocation);
                 featureList.forEach(function (f) {
                     if (f.sample === sampleName) {
                         items.push({
@@ -590,11 +587,8 @@ var igv = (function (igv) {
                 });
             }
             if (this.featureSourceRed.featureCache) {
-                var chr = igv.browser.referenceFrame.chr; // TODO -- this
-                // should be passed
-                // in
-                var featureList = this.featureSourceRed.featureCache.queryFeatures(chr, genomicLocation,
-                    genomicLocation);
+                var chr = referenceFrame.chrName,
+                    featureList = this.featureSourceRed.featureCache.queryFeatures(chr, genomicLocation, genomicLocation);
                 featureList.forEach(function (f) {
                     if (f.sample === sampleName) {
                         items.push({

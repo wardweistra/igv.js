@@ -25,8 +25,7 @@
 
 var igv = (function (igv) {
 
-
-    igv.makeToggleButton = function (buttonOnLabel, buttonOffLabel, configurationKey, get$Target) {
+    igv.makeToggleButton = function (buttonOnLabel, buttonOffLabel, configurationKey, get$Target, continuation) {
 
         var $button = $('<div class="igv-nav-bar-toggle-button">'),
             configurationValue = igv.browser[ configurationKey ];
@@ -51,6 +50,10 @@ var igv = (function (igv) {
             if (true === truth) {
                 $b.addClass('igv-nav-bar-toggle-button-off');
                 $b.text(offLabel);
+
+                if (continuation) {
+                    continuation();
+                }
             } else {
                 $b.addClass('igv-nav-bar-toggle-button-on');
                 $b.text(onLabel);
@@ -367,6 +370,34 @@ var igv = (function (igv) {
         return Math.random() * (max - min) + min;
     };
 
+    igv.prettyBasePairNumber = function (raw) {
+
+        var denom,
+            units,
+            value,
+            floored;
+
+        if (raw > 1e7) {
+            denom = 1e6;
+            units = " mb";
+        } else if (raw > 1e4) {
+
+            denom = 1e3;
+            units = " kb";
+
+            value = raw/denom;
+            floored = Math.floor(value);
+            return igv.numberFormatter(floored) + units;
+        } else {
+            return igv.numberFormatter(raw) + " bp";
+        }
+
+        value = raw/denom;
+        floored = Math.floor(value);
+
+        return floored.toString() + units;
+    };
+
     // StackOverflow: http://stackoverflow.com/a/10810674/116169
     igv.numberFormatter = function (rawNumber) {
 
@@ -392,9 +423,19 @@ var igv = (function (igv) {
      */
     igv.translateMouseCoordinates = function (e, target) {
 
-        var eFixed = $.event.fix(e),   // Sets pageX and pageY for browsers that don't support them
-            posx = eFixed.pageX - $(target).offset().left,
-            posy = eFixed.pageY - $(target).offset().top;
+        var $target = $(target),
+            eFixed,
+            posx,
+            posy;
+
+        // Sets pageX and pageY for browsers that don't support them
+        eFixed = $.event.fix(e);
+
+        if (undefined === $target.offset()) {
+            console.log('igv.translateMouseCoordinates - $target.offset() is undefined.');
+        }
+        posx = eFixed.pageX - $target.offset().left;
+        posy = eFixed.pageY - $target.offset().top;
 
         return {x: posx, y: posy}
     };
